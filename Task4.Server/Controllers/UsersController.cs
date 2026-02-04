@@ -1,0 +1,77 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Task4.Server.Data;
+using Task4.Server.Models;
+
+namespace Task4.Server.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class UsersController : ControllerBase
+    {
+        private readonly AppDbContext _context;
+
+        public UsersController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/users
+        // Fetch all users to display in the table
+        [HttpGet]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _context.Users
+                .OrderByDescending(u => u.LastLoginTime)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Name,
+                    u.Email,
+                    u.LastLoginTime,
+                    u.RegistrationTime,
+                    u.Status
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
+        // POST: api/users/block
+        [HttpPost("block")]
+        public async Task<IActionResult> BlockUsers([FromBody] List<Guid> userIds)
+        {
+            await UpdateUserStatus(userIds, "Blocked");
+            return Ok(new { message = "Users blocked" });
+        }
+
+        // POST: api/users/unblock
+        [HttpPost("unblock")]
+        public async Task<IActionResult> UnblockUsers([FromBody] List<Guid> userIds)
+        {
+            await UpdateUserStatus(userIds, "Active");
+            return Ok(new { message = "Users unblocked" });
+        }
+
+        // POST: api/users/delete
+        [HttpPost("delete")]
+        public async Task<IActionResult> DeleteUsers([FromBody] List<Guid> userIds)
+        {
+            var users = await _context.Users.Where(u => userIds.Contains(u.Id)).ToListAsync();
+            _context.Users.RemoveRange(users);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Users deleted" });
+        }
+
+        // Helper function to update status for multiple users
+        private async Task UpdateUserStatus(List<Guid> ids, string status)
+        {
+            var users = await _context.Users.Where(u => ids.Contains(u.Id)).ToListAsync();
+            foreach (var user in users)
+            {
+                user.Status = status;
+            }
+            await _context.SaveChangesAsync();
+        }
+    }
+}

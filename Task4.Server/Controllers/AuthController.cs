@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
@@ -47,7 +48,7 @@ namespace Task4.Server.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var hashedPassword = HashPassword(dto.Password);
+            var hasedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email && u.PasswordHash == hashedPassword);
 
             if (user == null) return Unauthorized(new { message = "Invalid email or password." });
